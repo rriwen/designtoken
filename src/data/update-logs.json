@@ -1,0 +1,24 @@
+[
+  {
+    "date": "2025-12-18",
+    "content": [
+      "- color-bg-active 命名改为 color-bg-selected",
+      "- color-border-hover = blue-4 改为 grey-7",
+      "- 提示文字颜色 token 由 color-text-info 改为  color-text-description"
+    ]
+  },
+  {
+    "date": "2025-12-12",
+    "content": [
+      "- color-bg-disabled = grey-3 改为 grey-2"
+    ]
+  },
+  {
+    "date": "2025-12-11",
+    "content": [
+      "- 颜色语义 Token 中背景、边框、图标补充状态（success/warning/error）相关 Token，原状态 token 和值调整为 tag 、alert 组件 token",
+      "- 颜色的组件 token 命名格式由 color-[item]-[subitem]-[type]-[state] 调整为 [item]-[subitem]-color-[type]-[state]",
+      "- 圆角 Token 改为 SM/MD/LG"
+    ]
+  }
+]
