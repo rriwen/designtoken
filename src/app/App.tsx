@@ -13,7 +13,8 @@ import {
   Check,
   Move,
   Download,
-  History
+  History,
+  X
 } from 'lucide-react';
 import { Button } from './components/ui/button';
 import { Input } from './components/ui/input';
@@ -469,7 +470,16 @@ const convertToJS = (cssVar: string): string => {
     return part.charAt(0).toUpperCase() + part.slice(1);
   }).join('');
   
-  return `tokens.${camelCase}`;
+  return camelCase;
+};
+
+// Helper to format value based on code language
+// If value is a CSS variable reference (starts with --), convert it in JS format
+const formatValue = (value: string, codeLanguage: 'css' | 'js'): string => {
+  if (codeLanguage === 'js' && typeof value === 'string' && value.startsWith('--')) {
+    return convertToJS(value);
+  }
+  return value;
 };
 
 // Code Syntax cell component with hover copy
@@ -1378,7 +1388,7 @@ const TokenGroup = ({
                                   onClick={() => token.value && typeof token.value === 'string' && token.value.startsWith('--') && onSemanticValueClick?.(token.value)}
                                   title={token.value && typeof token.value === 'string' && token.value.startsWith('--') ? '点击定位到对应的基础颜色' : ''}
                                 >
-                                  {token.value}
+                                  {formatValue(token.value, codeLanguage)}
                                 </span>
                                 {typeof token.value === 'string' && token.value.startsWith('{') && (
                                   <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200">
@@ -1459,7 +1469,7 @@ const TokenGroup = ({
                                   onClick={() => token.value && typeof token.value === 'string' && token.value.startsWith('--') && onSemanticValueClick?.(token.value)}
                                   title={token.value && typeof token.value === 'string' && token.value.startsWith('--') ? '点击定位到对应的基础颜色' : ''}
                                 >
-                                  {token.value}
+                                  {formatValue(token.value, codeLanguage)}
                                 </span>
                                 {typeof token.value === 'string' && token.value.startsWith('{') && (
                                   <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200">
@@ -1520,7 +1530,7 @@ const TokenGroup = ({
                     </TableCell>
                     <TableCell className="font-mono text-[11px] text-slate-600 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="select-all">{token.value}</span>
+                        <span className="select-all">{formatValue(token.value, codeLanguage)}</span>
                         {typeof token.value === 'string' && token.value.startsWith('{') && (
                           <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-amber-50 text-amber-700 border-amber-200">
                             Alias
@@ -1835,10 +1845,22 @@ export default function App() {
       const token = data[key];
       if (token && typeof token === 'object' && 'value' in token) {
         // 基础颜色：扁平结构，key 就是颜色名称
-        result[key] = {
+        const tokenData: any = {
           $type: 'color',
           $value: token.value
         };
+        
+        // 如果有 codeSyntax，根据 codeLanguage 转换
+        if (token.codeSyntax) {
+          const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+          tokenData.$extensions = {
+            'com.figma.codeSyntax': {
+              WEB: codeSyntaxValue
+            }
+          };
+        }
+        
+        result[key] = tokenData;
       }
     }
     
@@ -1859,10 +1881,24 @@ export default function App() {
           if (token && typeof token === 'object' && 'value' in token) {
             // 从 color-{category}-{name} 提取 name
             const name = tokenKey.replace(`color-${category}-`, '');
-            result[category][name] = {
+            const tokenData: any = {
               $type: 'color',
-              $value: token.value
+              $value: codeLanguage === 'js' && typeof token.value === 'string' && token.value.startsWith('--') 
+                ? convertToJS(token.value) 
+                : token.value
             };
+            
+            // 如果有 codeSyntax，根据 codeLanguage 转换
+            if (token.codeSyntax) {
+              const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+              tokenData.$extensions = {
+                'com.figma.codeSyntax': {
+                  WEB: codeSyntaxValue
+                }
+              };
+            }
+            
+            result[category][name] = tokenData;
           }
         }
       }
@@ -1882,10 +1918,22 @@ export default function App() {
       if (token && typeof token === 'object' && 'value' in token) {
         // 从 radius-{key} 提取 key
         const tokenKey = key.replace('radius-', '');
-        result.radius[tokenKey] = {
+        const tokenData: any = {
           $type: 'number',
           $value: Number(token.value)
         };
+        
+        // 如果有 codeSyntax，根据 codeLanguage 转换
+        if (token.codeSyntax) {
+          const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+          tokenData.$extensions = {
+            'com.figma.codeSyntax': {
+              WEB: codeSyntaxValue
+            }
+          };
+        }
+        
+        result.radius[tokenKey] = tokenData;
       }
     }
     
@@ -1903,10 +1951,22 @@ export default function App() {
       if (token && typeof token === 'object' && 'value' in token) {
         // 从 space-{key} 提取 key
         const tokenKey = key.replace('space-', '');
-        result.space[tokenKey] = {
+        const tokenData: any = {
           $type: 'number',
           $value: Number(token.value)
         };
+        
+        // 如果有 codeSyntax，根据 codeLanguage 转换
+        if (token.codeSyntax) {
+          const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+          tokenData.$extensions = {
+            'com.figma.codeSyntax': {
+              WEB: codeSyntaxValue
+            }
+          };
+        }
+        
+        result.space[tokenKey] = tokenData;
       }
     }
     
@@ -1921,10 +1981,22 @@ export default function App() {
       const token = data[key];
       if (token && typeof token === 'object' && 'value' in token) {
         // 阴影：扁平结构
-        result[key] = {
+        const tokenData: any = {
           $type: 'shadow',
           $value: token.value
         };
+        
+        // 如果有 codeSyntax，根据 codeLanguage 转换
+        if (token.codeSyntax) {
+          const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+          tokenData.$extensions = {
+            'com.figma.codeSyntax': {
+              WEB: codeSyntaxValue
+            }
+          };
+        }
+        
+        result[key] = tokenData;
       }
     }
     
@@ -1947,10 +2019,22 @@ export default function App() {
         if (token && token.value) {
           // 从 font-family-default 提取 default
           const tokenKey = key.replace('font-family-', '');
-          result.family[tokenKey] = {
+          const tokenData: any = {
             $type: 'string',
             $value: token.value
           };
+          
+          // 如果有 codeSyntax，根据 codeLanguage 转换
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            tokenData.$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+          
+          result.family[tokenKey] = tokenData;
         }
       }
     }
@@ -1961,10 +2045,22 @@ export default function App() {
         const token = data.weight[key];
         if (token && token.value) {
           const tokenKey = key.replace('font-weight-', '');
-          result.weight[tokenKey] = {
+          const tokenData: any = {
             $type: 'string',
             $value: token.value
           };
+          
+          // 如果有 codeSyntax，根据 codeLanguage 转换
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            tokenData.$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+          
+          result.weight[tokenKey] = tokenData;
         }
       }
     }
@@ -1975,10 +2071,22 @@ export default function App() {
         const token = data.size[key];
         if (token && token.value) {
           const tokenKey = key.replace('font-size-', '');
-          result.size[tokenKey] = {
+          const tokenData: any = {
             $type: 'number',
             $value: Number(token.value)
           };
+          
+          // 如果有 codeSyntax，根据 codeLanguage 转换
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            tokenData.$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+          
+          result.size[tokenKey] = tokenData;
         }
       }
     }
@@ -1989,10 +2097,22 @@ export default function App() {
         const token = data['line-height'][key];
         if (token && token.value) {
           const tokenKey = key.replace('font-line-height-', '');
-          result['line-height'][tokenKey] = {
+          const tokenData: any = {
             $type: 'number',
             $value: Number(token.value)
           };
+          
+          // 如果有 codeSyntax，根据 codeLanguage 转换
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            tokenData.$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+          
+          result['line-height'][tokenKey] = tokenData;
         }
       }
     }
@@ -2257,7 +2377,7 @@ export default function App() {
             <Download className="w-4 h-4" />
           </Button>
           {/* 更新记录按钮 */}
-          <Drawer open={isUpdateLogOpen} onOpenChange={setIsUpdateLogOpen} direction="bottom">
+          <Drawer open={isUpdateLogOpen} onOpenChange={setIsUpdateLogOpen} direction="right">
             <DrawerTrigger asChild>
               <Button
                 variant="outline"
@@ -2268,13 +2388,24 @@ export default function App() {
                 <History className="w-4 h-4" />
               </Button>
             </DrawerTrigger>
-            <DrawerContent className="max-h-[80vh]">
-              <div className="mx-auto w-full max-w-2xl">
-                <DrawerHeader>
-                  <DrawerTitle>更新记录</DrawerTitle>
-                  <DrawerDescription>查看系统更新历史</DrawerDescription>
+            <DrawerContent className="h-full max-w-md">
+              <div className="flex flex-col h-full">
+                <DrawerHeader className="flex-shrink-0">
+                  <div className="flex items-center justify-between">
+                    <DrawerTitle className="text-sm">更新记录</DrawerTitle>
+                    <DrawerClose asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        title="关闭"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </DrawerClose>
+                  </div>
                 </DrawerHeader>
-                <div className="p-4 pb-8 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto p-4">
                   <div className="space-y-4">
                     {updateLogs.map((log, index) => (
                       <div key={index} className="border-b border-slate-200 pb-4 last:border-b-0 last:pb-0">
@@ -2283,10 +2414,10 @@ export default function App() {
                             <div className="w-2 h-2 rounded-full bg-blue-500 mt-2" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-slate-900 mb-1">
+                            <div className="text-xs font-medium text-slate-900 mb-1">
                               {log.date}
                             </div>
-                            <div className="text-sm text-slate-600">
+                            <div className="text-xs text-slate-600">
                               {Array.isArray(log.content) ? (
                                 <ul className="list-none space-y-1">
                                   {log.content.map((line: string, lineIndex: number) => (

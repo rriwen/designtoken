@@ -193,7 +193,7 @@
           "SHAPE_FILL"
         ],
         "com.figma.codeSyntax": {
-          "WEB": "--ob-color-bg-active"
+          "WEB": "--ob-color-bg-selected"
         },
         "com.figma.aliasData": {
           "targetVariableId": "VariableID:a3f1d92a852d1fe7dba38b2a69f79b0e581bf7d1/-1:-1",
