@@ -49,7 +49,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -2232,7 +2231,7 @@ export default function App() {
   // 导出功能 - 打包为zip文件下载
   const handleExport = async () => {
     try {
-      const filesToExport: Array<{ data: any; filename: string }> = [];
+      const filesToExport: Array<{ data: any; filename: string; isText?: boolean }> = [];
       
       // 收集所有需要导出的文件
       if (tokens.primitives && Object.keys(tokens.primitives).length > 0) {
@@ -2265,6 +2264,18 @@ export default function App() {
         filesToExport.push({ data: shadowData, filename: 'shadow.json' });
       }
 
+      // 生成全局样式Design Token文件 (JSON格式)
+      const globalStylesData = generateGlobalStyles();
+      if (globalStylesData && globalStylesData.tokens && Object.keys(globalStylesData.tokens).length > 0) {
+        filesToExport.push({ data: globalStylesData, filename: 'global-styles.tokens.json' });
+      }
+
+      // 生成全局样式CSS文件
+      const globalStylesCSS = generateGlobalStylesCSS();
+      if (globalStylesCSS && globalStylesCSS.trim().length > 0) {
+        filesToExport.push({ data: globalStylesCSS, filename: 'global-styles.css', isText: true });
+      }
+
       if (filesToExport.length === 0) {
         toast.info('没有可导出的数据');
         return;
@@ -2276,8 +2287,14 @@ export default function App() {
 
       // 将所有文件添加到zip
       filesToExport.forEach((file) => {
-        const jsonString = JSON.stringify(file.data, null, 2);
-        zip.file(file.filename, jsonString);
+        if (file.isText) {
+          // 文本文件（如CSS）
+          zip.file(file.filename, file.data);
+        } else {
+          // JSON文件
+          const jsonString = JSON.stringify(file.data, null, 2);
+          zip.file(file.filename, jsonString);
+        }
       });
 
       // 生成zip文件并下载
@@ -2584,6 +2601,413 @@ export default function App() {
     };
     
     return result;
+  };
+
+  // 生成CSS格式的全局样式文件
+  const generateGlobalStylesCSS = (): string => {
+    let css = `/**
+ * OceanBase Design Tokens - 全局样式文件
+ * 生成时间: ${new Date().toISOString()}
+ * 语言: ${typographyLanguage}
+ * 
+ * 此文件包含所有设计token的CSS变量定义，可直接在WEB应用中使用
+ * 使用方法: @import './global-styles.css' 或在HTML中引入
+ */
+
+:root {
+`;
+
+    // 添加基础颜色 (primitives)
+    if (tokens.primitives) {
+      css += `  /* 基础颜色 (Primitives) */\n`;
+      const processPrimitives = (data: any, prefix = '') => {
+        for (const key in data) {
+          const token = data[key];
+          if (token && typeof token === 'object') {
+            if ('value' in token) {
+              // 这是一个token
+              const fullKey = prefix ? `${prefix}-${key}` : key;
+              const cssVar = token.codeSyntax || `--ob-${fullKey}`;
+              css += `  ${cssVar}: ${token.value};\n`;
+            } else {
+              // 这是一个嵌套组，递归处理
+              const newPrefix = prefix ? `${prefix}-${key}` : key;
+              processPrimitives(token, newPrefix);
+            }
+          }
+        }
+      };
+      processPrimitives(tokens.primitives);
+      css += `\n`;
+    }
+
+    // 添加语义颜色 (semantics)
+    if (tokens.semantics) {
+      css += `  /* 语义颜色 (Semantics) */\n`;
+      for (const category in tokens.semantics) {
+        if (typeof tokens.semantics[category] === 'object' && tokens.semantics[category] !== null) {
+          for (const tokenKey in tokens.semantics[category]) {
+            const token = tokens.semantics[category][tokenKey];
+            if (token && typeof token === 'object' && 'value' in token) {
+              const cssVar = token.codeSyntax || `--ob-color-${category}-${tokenKey.replace(`color-${category}-`, '')}`;
+              // 如果值是CSS变量引用，直接使用；否则使用实际值
+              const value = typeof token.value === 'string' && token.value.startsWith('--') 
+                ? `var(${token.value})` 
+                : token.value;
+              css += `  ${cssVar}: ${value};\n`;
+            }
+          }
+        }
+      }
+      css += `\n`;
+    }
+
+    // 添加字体token (typography)
+    if (tokens.typography) {
+      css += `  /* 字体 (Typography) */\n`;
+      
+      if (tokens.typography.family) {
+        for (const key in tokens.typography.family) {
+          const token = tokens.typography.family[key];
+          if (token && token.value) {
+            const cssVar = token.codeSyntax || `--ob-${key}`;
+            css += `  ${cssVar}: ${token.value};\n`;
+          }
+        }
+      }
+      
+      if (tokens.typography.weight) {
+        for (const key in tokens.typography.weight) {
+          const token = tokens.typography.weight[key];
+          if (token && token.value) {
+            const cssVar = token.codeSyntax || `--ob-${key}`;
+            css += `  ${cssVar}: ${token.value};\n`;
+          }
+        }
+      }
+      
+      if (tokens.typography.size) {
+        for (const key in tokens.typography.size) {
+          const token = tokens.typography.size[key];
+          if (token && token.value) {
+            const cssVar = token.codeSyntax || `--ob-${key}`;
+            const value = typeof token.value === 'number' ? `${token.value}px` : token.value;
+            css += `  ${cssVar}: ${value};\n`;
+          }
+        }
+      }
+      
+      if (tokens.typography['line-height']) {
+        for (const key in tokens.typography['line-height']) {
+          const token = tokens.typography['line-height'][key];
+          if (token && token.value) {
+            const cssVar = token.codeSyntax || `--ob-${key}`;
+            css += `  ${cssVar}: ${token.value};\n`;
+          }
+        }
+      }
+      css += `\n`;
+    }
+
+    // 添加圆角token (radius)
+    if (tokens.radius) {
+      css += `  /* 圆角 (Radius) */\n`;
+      for (const key in tokens.radius) {
+        const token = tokens.radius[key];
+        if (token && typeof token === 'object' && 'value' in token) {
+          const cssVar = token.codeSyntax || `--ob-${key}`;
+          const value = typeof token.value === 'number' ? `${token.value}px` : token.value;
+          css += `  ${cssVar}: ${value};\n`;
+        }
+      }
+      css += `\n`;
+    }
+
+    // 添加阴影token (shadow)
+    if (tokens.shadow) {
+      css += `  /* 阴影 (Shadow) */\n`;
+      for (const key in tokens.shadow) {
+        const token = tokens.shadow[key];
+        if (token && typeof token === 'object' && 'value' in token) {
+          const cssVar = token.codeSyntax || `--ob-shadow-${key}`;
+          css += `  ${cssVar}: ${token.value};\n`;
+        }
+      }
+      css += `\n`;
+    }
+
+    // 添加间距token (spacing)
+    if (tokens.spacing) {
+      css += `  /* 间距 (Spacing) */\n`;
+      for (const key in tokens.spacing) {
+        const token = tokens.spacing[key];
+        if (token && typeof token === 'object' && 'value' in token) {
+          const cssVar = token.codeSyntax || `--ob-space-${key.replace('space-', '')}`;
+          const value = typeof token.value === 'number' ? `${token.value}px` : token.value;
+          css += `  ${cssVar}: ${value};\n`;
+        }
+      }
+      css += `\n`;
+    }
+
+    css += `}\n`;
+
+    return css;
+  };
+
+  // 生成全局样式Design Token文件
+  const generateGlobalStyles = (): any => {
+    const globalStyles: any = {
+      $schema: "https://schema.design-tokens.io/design-tokens.json",
+      $version: "1.0.0",
+      name: "OceanBase Design Tokens",
+      description: "全局设计规范 - 包含所有设计token的汇总，用于提供全局的设计规范",
+      tokens: {}
+    };
+
+    // 合并颜色token (primitives + semantics)
+    if (tokens.primitives || tokens.semantics) {
+      globalStyles.tokens.color = {};
+      
+      // 添加基础颜色 (primitives)
+      if (tokens.primitives) {
+        for (const key in tokens.primitives) {
+          const token = tokens.primitives[key];
+          if (token && typeof token === 'object' && 'value' in token) {
+            const tokenKey = `seed.${key}`;
+            globalStyles.tokens.color[tokenKey] = {
+              $type: 'color',
+              $value: token.value,
+              description: `基础颜色: ${key}`
+            };
+            
+            if (token.codeSyntax) {
+              const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+              globalStyles.tokens.color[tokenKey].$extensions = {
+                'com.figma.codeSyntax': {
+                  WEB: codeSyntaxValue
+                }
+              };
+            }
+          }
+        }
+      }
+      
+      // 添加语义颜色 (semantics)
+      if (tokens.semantics) {
+        for (const category in tokens.semantics) {
+          if (typeof tokens.semantics[category] === 'object' && tokens.semantics[category] !== null) {
+            for (const tokenKey in tokens.semantics[category]) {
+              const token = tokens.semantics[category][tokenKey];
+              if (token && typeof token === 'object' && 'value' in token) {
+                const fullKey = `semantic.${category}.${tokenKey.replace(`color-${category}-`, '')}`;
+                globalStyles.tokens.color[fullKey] = {
+                  $type: 'color',
+                  $value: codeLanguage === 'js' && typeof token.value === 'string' && token.value.startsWith('--') 
+                    ? convertToJS(token.value) 
+                    : token.value,
+                  description: `语义颜色: ${category} - ${tokenKey.replace(`color-${category}-`, '')}`
+                };
+                
+                if (token.codeSyntax) {
+                  const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+                  globalStyles.tokens.color[fullKey].$extensions = {
+                    'com.figma.codeSyntax': {
+                      WEB: codeSyntaxValue
+                    }
+                  };
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 添加字体token (typography)
+    if (tokens.typography) {
+      globalStyles.tokens.typography = {};
+      
+      if (tokens.typography.family) {
+        globalStyles.tokens.typography.family = {};
+        for (const key in tokens.typography.family) {
+          const token = tokens.typography.family[key];
+          if (token && token.value) {
+            const tokenKey = key.replace('font-family-', '');
+            globalStyles.tokens.typography.family[tokenKey] = {
+              $type: 'fontFamily',
+              $value: token.value,
+              description: `字体族: ${tokenKey}`
+            };
+            
+            if (token.codeSyntax) {
+              const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+              globalStyles.tokens.typography.family[tokenKey].$extensions = {
+                'com.figma.codeSyntax': {
+                  WEB: codeSyntaxValue
+                }
+              };
+            }
+          }
+        }
+      }
+      
+      if (tokens.typography.weight) {
+        globalStyles.tokens.typography.weight = {};
+        for (const key in tokens.typography.weight) {
+          const token = tokens.typography.weight[key];
+          if (token && token.value) {
+            const tokenKey = key.replace('font-weight-', '');
+            globalStyles.tokens.typography.weight[tokenKey] = {
+              $type: 'fontWeight',
+              $value: token.value,
+              description: `字体粗细: ${tokenKey}`
+            };
+            
+            if (token.codeSyntax) {
+              const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+              globalStyles.tokens.typography.weight[tokenKey].$extensions = {
+                'com.figma.codeSyntax': {
+                  WEB: codeSyntaxValue
+                }
+              };
+            }
+          }
+        }
+      }
+      
+      if (tokens.typography.size) {
+        globalStyles.tokens.typography.size = {};
+        for (const key in tokens.typography.size) {
+          const token = tokens.typography.size[key];
+          if (token && token.value) {
+            const tokenKey = key.replace('font-size-', '');
+            globalStyles.tokens.typography.size[tokenKey] = {
+              $type: 'dimension',
+              $value: token.value,
+              description: `字体大小: ${tokenKey}`
+            };
+            
+            if (token.codeSyntax) {
+              const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+              globalStyles.tokens.typography.size[tokenKey].$extensions = {
+                'com.figma.codeSyntax': {
+                  WEB: codeSyntaxValue
+                }
+              };
+            }
+          }
+        }
+      }
+      
+      if (tokens.typography['line-height']) {
+        globalStyles.tokens.typography['line-height'] = {};
+        for (const key in tokens.typography['line-height']) {
+          const token = tokens.typography['line-height'][key];
+          if (token && token.value) {
+            const tokenKey = key.replace('font-line-height-', '');
+            globalStyles.tokens.typography['line-height'][tokenKey] = {
+              $type: 'number',
+              $value: Number(token.value),
+              description: `行高: ${tokenKey}`
+            };
+            
+            if (token.codeSyntax) {
+              const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+              globalStyles.tokens.typography['line-height'][tokenKey].$extensions = {
+                'com.figma.codeSyntax': {
+                  WEB: codeSyntaxValue
+                }
+              };
+            }
+          }
+        }
+      }
+    }
+
+    // 添加圆角token (radius)
+    if (tokens.radius) {
+      globalStyles.tokens.radius = {};
+      for (const key in tokens.radius) {
+        const token = tokens.radius[key];
+        if (token && typeof token === 'object' && 'value' in token) {
+          const tokenKey = key.replace('radius-', '');
+          globalStyles.tokens.radius[tokenKey] = {
+            $type: 'dimension',
+            $value: token.value,
+            description: `圆角: ${tokenKey}`
+          };
+          
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            globalStyles.tokens.radius[tokenKey].$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+        }
+      }
+    }
+
+    // 添加阴影token (shadow)
+    if (tokens.shadow) {
+      globalStyles.tokens.shadow = {};
+      for (const key in tokens.shadow) {
+        const token = tokens.shadow[key];
+        if (token && typeof token === 'object' && 'value' in token) {
+          globalStyles.tokens.shadow[key] = {
+            $type: 'shadow',
+            $value: token.value,
+            description: `阴影: ${key}`
+          };
+          
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            globalStyles.tokens.shadow[key].$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+        }
+      }
+    }
+
+    // 添加间距token (spacing)
+    if (tokens.spacing) {
+      globalStyles.tokens.spacing = {};
+      for (const key in tokens.spacing) {
+        const token = tokens.spacing[key];
+        if (token && typeof token === 'object' && 'value' in token) {
+          const tokenKey = key.replace('space-', '');
+          globalStyles.tokens.spacing[tokenKey] = {
+            $type: 'dimension',
+            $value: token.value,
+            description: `间距: ${tokenKey}`
+          };
+          
+          if (token.codeSyntax) {
+            const codeSyntaxValue = codeLanguage === 'js' ? convertToJS(token.codeSyntax) : token.codeSyntax;
+            globalStyles.tokens.spacing[tokenKey].$extensions = {
+              'com.figma.codeSyntax': {
+                WEB: codeSyntaxValue
+              }
+            };
+          }
+        }
+      }
+    }
+
+    // 添加元数据
+    globalStyles.metadata = {
+      generatedAt: new Date().toISOString(),
+      language: typographyLanguage,
+      codeSyntax: codeLanguage,
+      version: "1.0.0"
+    };
+
+    return globalStyles;
   };
 
   // 下载 JSON 文件
