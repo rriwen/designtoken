@@ -109,27 +109,27 @@ export const radius = {
 // Shadow tokens
 export const shadow = {
   "shadow-1-top": { 
-    "value": "rgba(219,50,15,0.1) 0PX -1PX 2PX 0PX", 
+    "value": "hsla(219,50,15,0.1) 0PX -1PX 2PX 0PX", 
     "type": "boxShadow",
     "codeSyntax": "--ob-shadow-1-top"
   },
   "shadow-1-bottom": { 
-    "value": "rgba(219,50,15,0.1) 0PX 1PX 2PX 0PX", 
+    "value": "hsla(219,50,15,0.1) 0PX 1PX 2PX 0PX", 
     "type": "boxShadow",
     "codeSyntax": "--ob-shadow-1-bottom"
   },
   "shadow-1-left": { 
-    "value": "rgba(219,50,15,0.1) -1PX 0PX 2PX 0PX", 
+    "value": "hsla(219,50,15,0.1) -1PX 0PX 2PX 0PX", 
     "type": "boxShadow",
     "codeSyntax": "--ob-shadow-1-left"
   },
   "shadow-1-right": { 
-    "value": "rgba(219,50,15,0.1) 1PX 0PX 2PX 0PX", 
+    "value": "hsla(219,50,15,0.1) 1PX 0PX 2PX 0PX", 
     "type": "boxShadow",
     "codeSyntax": "--ob-shadow-1-right"
   },
   "shadow-2": { 
-    "value": "rgba(219,50,15,0.1) 0PX 6PX 16PX 2PX", 
+    "value": "hsla(219,50,15,0.1) 0PX 6PX 16PX 2PX", 
     "type": "boxShadow",
     "codeSyntax": "--ob-shadow-2"
   }

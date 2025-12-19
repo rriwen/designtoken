@@ -29,12 +29,12 @@ import {
 } from './components/ui/select';
 import { primitives, semantics, components, typography, radius, shadow, spacing } from '../data/mockTokens';
 // 导入 tokens 文件
-import colorSeedTokensJson from '../../token/color-seed.tokens.json';
-import colorSemanticTokensJson from '../../token/color-semantic.tokens.json';
-import sizeTokensJson from '../../token/size.tokens.json';
-import fontZhTokensJson from '../../token/font/中文.tokens.json';
-import fontEnTokensJson from '../../token/font/英文.tokens.json';
-import fontJaTokensJson from '../../token/font/日文.tokens.json';
+import colorSeedTokensJson from '../data/token/color-seed.tokens.json';
+import colorSemanticTokensJson from '../data/token/color-semantic.tokens.json';
+import sizeTokensJson from '../data/token/size.tokens.json';
+import fontZhTokensJson from '../data/token/font/中文.tokens.json';
+import fontEnTokensJson from '../data/token/font/英文.tokens.json';
+import fontJaTokensJson from '../data/token/font/日文.tokens.json';
 // 导入更新记录
 import updateLogsJson from '../data/update-logs.json';
 // 为了兼容性，使用 tokens 文件作为 colorSeedJson 和 colorSemanticJson
@@ -572,6 +572,98 @@ const ColorSwatch = ({ value, tokenMap, colorHex, colorAlpha }: { value: string,
         {/* Copy icon overlay on hover */}
         {isHovered && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-[1px]">
+            {isCopied ? (
+              <Check className="w-4 h-4 text-white drop-shadow-lg" />
+            ) : (
+              <Copy className="w-4 h-4 text-white drop-shadow-lg" />
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ShadowPreview = ({ value }: { value: string }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+  
+  // Parse and normalize shadow value
+  // Format: "hsla(219,50,15,0.1) 0PX -1PX 2PX 0PX"
+  // Convert to standard CSS format: "hsla(219, 50%, 15%, 0.1) 0px -1px 2px 0px"
+  const parseShadowValue = (val: string): string => {
+    // Match hsla/rgba color followed by coordinates
+    const shadowMatch = val.match(/^(hsla?|rgba?)\(([^)]+)\)\s*(.+)$/i);
+    
+    if (!shadowMatch) {
+      // If no match, just normalize PX to px
+      return val.replace(/PX/g, 'px');
+    }
+    
+    const colorType = shadowMatch[1].toLowerCase();
+    const colorValues = shadowMatch[2];
+    const coordinates = shadowMatch[3].trim();
+    
+    // Normalize coordinates: PX to px
+    const normalizedCoords = coordinates.replace(/PX/g, 'px');
+    
+    // Handle hsla format - ensure s and l have % if they don't
+    if (colorType === 'hsla' || colorType === 'hsl') {
+      // Parse hsla values: h, s, l, a
+      const values = colorValues.split(',').map(v => v.trim());
+      
+      if (values.length >= 3) {
+        const h = values[0];
+        const s = values[1];
+        const l = values[2];
+        const a = values[3] || '1';
+        
+        // Add % to s and l if they don't have it
+        const sNormalized = s.includes('%') ? s : `${s}%`;
+        const lNormalized = l.includes('%') ? l : `${l}%`;
+        
+        // Reconstruct hsla with proper formatting
+        const normalizedColor = `${colorType}(${h}, ${sNormalized}, ${lNormalized}, ${a})`;
+        return `${normalizedColor} ${normalizedCoords}`;
+      }
+    }
+    
+    // For rgba or other formats, just normalize spacing and PX
+    return `${colorType}(${colorValues}) ${normalizedCoords}`;
+  };
+  
+  const normalizedValue = parseShadowValue(value);
+  
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await copyToClipboard(normalizedValue, 'Shadow value');
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  return (
+    <div 
+      className="flex items-center gap-2 justify-end relative"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Hover tooltip showing shadow value */}
+      {isHovered && (
+        <div className="absolute right-10 top-1/2 -translate-y-1/2 px-2 py-1 bg-slate-900 text-white text-[10px] font-mono rounded shadow-lg whitespace-nowrap z-20 pointer-events-none">
+          {normalizedValue}
+        </div>
+      )}
+      
+      {/* Shadow preview with click to copy - no border */}
+      <div 
+        className="w-8 h-8 rounded bg-white relative overflow-visible cursor-pointer transition-all hover:scale-110 group/shadow"
+        style={{ boxShadow: normalizedValue }}
+        onClick={handleCopy}
+        title="Click to copy shadow value"
+      >
+        {/* Copy icon overlay on hover */}
+        {isHovered && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/10 backdrop-blur-[1px] rounded">
             {isCopied ? (
               <Check className="w-4 h-4 text-white drop-shadow-lg" />
             ) : (
@@ -1297,7 +1389,11 @@ const TokenGroup = ({
                             </TableCell>
                             {groupName !== 'typography' && (
                               <TableCell className="text-right pr-6 py-3">
-                                <ColorSwatch value={token.value} tokenMap={tokenMap} colorHex={token.colorHex} colorAlpha={token.colorAlpha} />
+                                {groupName === 'shadow' ? (
+                                  <ShadowPreview value={token.value} />
+                                ) : (
+                                  <ColorSwatch value={token.value} tokenMap={tokenMap} colorHex={token.colorHex} colorAlpha={token.colorAlpha} />
+                                )}
                               </TableCell>
                             )}
                           </TableRow>
@@ -1374,7 +1470,11 @@ const TokenGroup = ({
                             </TableCell>
                             {groupName !== 'typography' && (
                               <TableCell className="text-right pr-6 py-3">
-                                <ColorSwatch value={token.value} tokenMap={tokenMap} colorHex={token.colorHex} colorAlpha={token.colorAlpha} />
+                                {groupName === 'shadow' ? (
+                                  <ShadowPreview value={token.value} />
+                                ) : (
+                                  <ColorSwatch value={token.value} tokenMap={tokenMap} colorHex={token.colorHex} colorAlpha={token.colorAlpha} />
+                                )}
                               </TableCell>
                             )}
                           </TableRow>
@@ -1430,7 +1530,11 @@ const TokenGroup = ({
                     </TableCell>
                     {groupName !== 'radius' && groupName !== 'spacing' && (
                       <TableCell className="text-right pr-6 py-3">
-                        <ColorSwatch value={token.value} tokenMap={tokenMap} colorHex={token.colorHex} colorAlpha={token.colorAlpha} />
+                        {groupName === 'shadow' ? (
+                          <ShadowPreview value={token.value} />
+                        ) : (
+                          <ColorSwatch value={token.value} tokenMap={tokenMap} colorHex={token.colorHex} colorAlpha={token.colorAlpha} />
+                        )}
                       </TableCell>
                     )}
                   </TableRow>
