@@ -3295,7 +3295,14 @@ export default function App() {
     <div className="flex flex-col h-screen w-full bg-white text-slate-900 font-sans overflow-hidden">
       {/* Header - 横向拉通 */}
       <header className="h-16 border-b border-slate-200 px-6 flex items-center justify-between bg-white shrink-0 z-20 w-full">
-        <h2 className="text-base font-semibold capitalize">OceanBase Design Tokens</h2>
+        <div className="flex items-center gap-3">
+          <img 
+            src="/favicon.png" 
+            alt="Logo" 
+            className="h-8 w-8 object-contain"
+          />
+          <h2 className="text-base font-semibold capitalize">OceanBase Design Tokens</h2>
+        </div>
         <div className="flex items-center gap-4">
           <div className="relative w-64">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
